@@ -1,0 +1,45 @@
+models:
+  detection:
+    yolo_obb: "models/detection/yolov8n-obb.pt"
+    dbnet: "models/detection/dbnet.onnx"
+  ocr:
+    detection: "models/ocr/ppocr_det.onnx"
+    recognition: "models/ocr/ppocr_rec.onnx"
+    dict_path: "models/ocr/ppocr_keys_v1.txt"
+  translation:
+    opus_mt_ja_zh: "Helsinki-NLP/opus-mt-ja-zh"
+    opus_mt_en_zh: "Helsinki-NLP/opus-mt-en-zh"
+    vlm_model: "Qwen/Qwen2.5-VL-2B-Instruct"
+  inpainting:
+    lama: "models/inpainting/lama.onnx"
+  enhancement:
+    real_esrgan: "models/enhancement/RealESRGAN_x2.pth"
+
+pipeline:
+  detection:
+    confidence_threshold: 0.5
+    nms_iou_threshold: 0.45
+  ocr:
+    confidence_threshold: 0.7
+    fallback_on_low_conf: true
+  translation:
+    simple_bubble_threshold: 0.6
+    max_vlm_context_chars: 512
+  rendering:
+    min_font_size: 10
+    max_font_size: 48
+    default_font_family_cn: "Source Han Sans SC"
+    default_font_family_ja: "Noto Sans JP"
+    default_font_family_en: "Roboto"
+
+gui:
+  window_title: "Comic Translator"
+  default_width: 1400
+  default_height: 900
+  supported_languages:
+    source: ["ja", "en", "zh"]
+    target: ["zh", "en"]
+
+paths:
+  character_profiles_dir: "data/profiles"
+  output_dir: "output"
