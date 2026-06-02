@@ -232,7 +232,7 @@ class MainWindow(QMainWindow):
 
         rl.addWidget(QLabel("目标语言:"))
         self._combo_tgt = QComboBox()
-        self._combo_tgt.addItems(["英语", "中文(需下载模型)"])
+        self._combo_tgt.addItems(["英语", "中文"])
         rl.addWidget(self._combo_tgt)
 
         self._check_save = QCheckBox("保留原图对照(PNG+文本)")
