@@ -1,4 +1,0 @@
-Detected 2 text regions:
-
-  [1] Text: Hello World  Confidence: 0.99
-  [2] Text: Test OCR  Confidence: 1.00
