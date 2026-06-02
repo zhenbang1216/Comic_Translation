@@ -11,10 +11,14 @@
     python scripts/test_full.py input/ --lang en                # 英语漫画
 
 调参速查:
-    --thresh     检测敏感度（0.1=多框, 0.5=少框, 默认0.3）
-    --box-thresh  框的置信度阈值（默认0.6）
-    --rec-score   只显示高于此分数的结果（默认0.0=全显示）
-    --lang        语言: japan / en / ch
+    检测参数:
+      --thresh      检测敏感度（0.1=多框, 0.5=少框, 默认0.3）
+      --box-thresh   框的置信度阈值（默认0.6）
+      --unclip      文本框松紧度（默认1.5, <1.0框更紧, >2.0框更大）
+    识别参数:
+      --rec-score    只保留≥此分数的结果（默认0.0=全保留）
+      --rec-batch    识别批处理大小（越大越快但占内存, 默认6）
+      --lang         语言: japan / en / ch
 """
 import sys
 import argparse
@@ -60,8 +64,12 @@ def main():
                         help="检测阈值 (0.1~0.5, 越低框越多, 默认0.3)")
     parser.add_argument("--box-thresh", type=float, default=0.6,
                         help="框置信度阈值 (默认0.6)")
+    parser.add_argument("--unclip", type=float, default=1.5,
+                        help="文本框松紧度 (<1.0更紧, >2.0更大, 默认1.5)")
     parser.add_argument("--rec-score", type=float, default=0.0,
-                        help="只显示≥此分数的识别结果 (默认0.0=全显示)")
+                        help="只保留≥此分数的识别结果 (默认0.0=全保留)")
+    parser.add_argument("--rec-batch", type=int, default=6,
+                        help="识别批处理大小 (默认6, 越大越快但占内存)")
     args = parser.parse_args()
 
     target = Path(args.path)
@@ -81,13 +89,17 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
 
     from paddleocr import PaddleOCR
-    print(f"加载 PaddleOCR (thresh={args.thresh}, box_thresh={args.box_thresh}, lang={args.lang})...")
+    print(f"加载 PaddleOCR (det_thresh={args.thresh}, box_thresh={args.box_thresh}, "
+          f"rec_score={args.rec_score}, lang={args.lang})...")
     ocr = PaddleOCR(
         lang=args.lang,
         use_doc_orientation_classify=False,
         use_textline_orientation=False,
         text_det_thresh=args.thresh,
         text_det_box_thresh=args.box_thresh,
+        text_det_unclip_ratio=args.unclip,
+        text_rec_score_thresh=args.rec_score,
+        rec_batch_num=args.rec_batch,
     )
 
     print(f"处理 {len(images)} 张图片...\n")
