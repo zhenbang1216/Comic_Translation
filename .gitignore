@@ -9,6 +9,7 @@ build/
 *.pt
 *.pth
 models/
+input/
+output/
 Training_dateset/
 runs/
-output/gui/
