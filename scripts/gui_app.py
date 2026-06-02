@@ -56,7 +56,7 @@ class PipelineThread(QThread):
                 self.error.emit("未检测到有效文字")
                 return
 
-            self.progress.emit(50, "加载翻译模型...")
+            self.progress.emit(50, "加载翻译模型(约30秒)...")
             from transformers import MarianMTModel, MarianTokenizer
             lang_map = {"japan": "ja", "en": "en", "ch": "zh"}
             src_iso = lang_map[self.src_lang]
@@ -65,9 +65,12 @@ class PipelineThread(QThread):
             tok_en_zh, mod_en_zh = None, None
 
             if self.tgt_lang == "zh":
+                self.progress.emit(52, "加载 ja→en 模型...")
                 tok_ja_en, mod_ja_en = self._load_mt("ja-en")
+                self.progress.emit(55, "加载 en→zh 模型...")
                 tok_en_zh, mod_en_zh = self._load_mt("en-zh")
             else:
+                self.progress.emit(52, f"加载 {src_iso}→{self.tgt_lang} 模型...")
                 tok_main, mod_main = self._load_mt(f"{src_iso}-{self.tgt_lang}")
 
             self.progress.emit(60, "翻译中...")
