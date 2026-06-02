@@ -6,3 +6,6 @@ dist/
 build/
 .pytest_cache/
 *.egg
+*.pt
+*.pth
+models/
