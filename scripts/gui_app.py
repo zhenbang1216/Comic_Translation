@@ -65,10 +65,16 @@ class PipelineThread(QThread):
             tok_en_zh, mod_en_zh = None, None
 
             if self.tgt_lang == "zh":
-                self.progress.emit(52, "加载 ja→en 模型...")
-                tok_ja_en, mod_ja_en = self._load_mt("ja-en")
-                self.progress.emit(55, "加载 en→zh 模型...")
-                tok_en_zh, mod_en_zh = self._load_mt("en-zh")
+                try:
+                    self.progress.emit(52, "加载 ja→en 模型...")
+                    tok_ja_en, mod_ja_en = self._load_mt("ja-en")
+                    self.progress.emit(55, "加载 en→zh 模型(首次需下载~300MB)...")
+                    tok_en_zh, mod_en_zh = self._load_mt("en-zh")
+                except Exception as e:
+                    self.progress.emit(50, "en→zh下载失败，改用en→zh备用...")
+                    if 'tok_ja_en' in dir():
+                        tok_main, mod_main = tok_ja_en, mod_ja_en
+                        self.tgt_lang = "en"
             else:
                 self.progress.emit(52, f"加载 {src_iso}→{self.tgt_lang} 模型...")
                 tok_main, mod_main = self._load_mt(f"{src_iso}-{self.tgt_lang}")
@@ -226,7 +232,7 @@ class MainWindow(QMainWindow):
 
         rl.addWidget(QLabel("目标语言:"))
         self._combo_tgt = QComboBox()
-        self._combo_tgt.addItems(["英语", "中文"])
+        self._combo_tgt.addItems(["英语", "中文(需下载模型)"])
         rl.addWidget(self._combo_tgt)
 
         self._check_save = QCheckBox("保留原图对照(PNG+文本)")
@@ -275,7 +281,7 @@ class MainWindow(QMainWindow):
             return
 
         src_map = {"日语": "japan", "英语": "en", "中文": "ch"}
-        tgt_map = {"英语": "en", "中文": "zh"}
+        tgt_map = {"英语": "en", "中文(需下载模型)": "zh"}
 
         self._progress.setVisible(True)
         self._progress.setValue(0)
