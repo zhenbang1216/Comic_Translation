@@ -10,10 +10,12 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from PySide6.QtWidgets import QApplication
+from src.utils.config import config
 from src.gui.main_window import MainWindow
 
 
 def main():
+    config.load(os.path.join(os.path.dirname(__file__), "..", "configs", "default.yaml"))
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
     window = MainWindow()

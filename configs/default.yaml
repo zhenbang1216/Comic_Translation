@@ -1,6 +1,6 @@
 models:
   detection:
-    yolo_obb: "models/detection/yolov8n-obb.pt"
+    yolo_obb: "runs/detect/comic_2-2/weights/best.pt"
     dbnet: "models/detection/dbnet.onnx"
   ocr:
     detection: "models/ocr/ppocr_det.onnx"
