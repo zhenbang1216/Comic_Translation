@@ -42,10 +42,14 @@ pip install torch ultralytics paddlepaddle==3.0.0 paddleocr transformers PySide6
 ```bash
 conda activate comic
 
-python scripts/test_full.py input/              # OCR检测+识别+可视化
-python scripts/test_translate.py input/          # OCR+翻译
-python scripts/test_full_pipeline.py input/      # 全流程：检测→翻译→修复→渲染
-python scripts/gui_app.py                        # GUI图形界面
+# GUI 图形界面（YOLO检测 → OCR → CADGT翻译 → LaMa修复 → SAAT渲染）
+python scripts/gui_app.py
+
+# CLI 命令行
+python src/main.py --cli input/your_image.jpg --source ja --target zh
+
+# 下载模型
+python scripts/download_models.py
 ```
 
 ### 训练
