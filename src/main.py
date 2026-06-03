@@ -5,7 +5,10 @@
     python src/main.py --cli image.png        # CLI模式
 """
 import sys
+import os
 import argparse
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
 def main():
