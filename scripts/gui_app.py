@@ -25,16 +25,21 @@ class PipelineThread(QThread):
     finished = Signal(str, str)
     error = Signal(str)
 
-    def __init__(self, img_path, src_lang, tgt_lang, rec_score):
+    def __init__(self, img_path, src_lang, tgt_lang, rec_score, yolo_model):
         super().__init__()
         self.img_path = img_path
         self.src_lang = src_lang
         self.tgt_lang = tgt_lang
         self.rec_score = rec_score
+        self.yolo_model = yolo_model
 
     def run(self):
         try:
-            self.progress.emit(10, "加载OCR模型...")
+            self.progress.emit(10, "加载YOLO检测模型...")
+            from ultralytics import YOLO
+            yolo = YOLO(self.yolo_model)
+
+            self.progress.emit(20, "加载OCR识别模型...")
             from paddleocr import PaddleOCR
             ocr = PaddleOCR(
                 lang=self.src_lang,
@@ -42,15 +47,48 @@ class PipelineThread(QThread):
                 use_textline_orientation=False,
             )
 
-            self.progress.emit(30, "识别文字...")
+            self.progress.emit(30, "YOLO检测文字区域...")
             img = cv2.imread(self.img_path)
-            results = ocr.predict(self.img_path)
-            item = results[0]
-            texts = item["rec_texts"]
-            scores = item["rec_scores"]
-            boxes = item["rec_polys"]
+            results = yolo.predict(self.img_path, conf=0.1, verbose=False)
 
-            filtered = [(t, s, b) for t, s, b in zip(texts, scores, boxes) if s >= self.rec_score]
+            from uuid import uuid4
+            import tempfile
+
+            filtered = []
+            if results[0].boxes is not None:
+                boxes_xyxy = results[0].boxes.xyxy
+                confs = results[0].boxes.conf
+                out_dir = Path("output/yolo_pipeline_gui")
+                out_dir.mkdir(parents=True, exist_ok=True)
+
+                for i, box in enumerate(boxes_xyxy):
+                    x1, y1, x2, y2 = map(int, box[:4])
+                    yolo_conf = float(confs[i]) if confs is not None else 0
+                    region = img[max(0,y1):min(img.shape[0],y2), max(0,x1):min(img.shape[1],x2)]
+                    if region.size == 0:
+                        continue
+
+                    tmp_path = str(out_dir / f"_tmp_{uuid4().hex[:8]}.png")
+                    cv2.imwrite(tmp_path, region)
+                    rec = ocr.predict(tmp_path)
+                    cv2.waitKey(1)
+                    import os
+                    try:
+                        os.unlink(tmp_path)
+                    except:
+                        pass
+
+                    item = rec[0]
+                    if item["rec_texts"] and item["rec_scores"][0] >= self.rec_score:
+                        t = item["rec_texts"][0]
+                        s = item["rec_scores"][0]
+                        # 转为4点格式兼容后续处理
+                        pts = np.array([[x1,y1],[x2,y1],[x2,y2],[x1,y2]], dtype=np.int32)
+                        filtered.append((t, s, pts))
+
+            texts = [f[0] for f in filtered]
+            scores = [f[1] for f in filtered]
+            boxes = [f[2] for f in filtered]
 
             if not filtered:
                 self.error.emit("未检测到有效文字")
@@ -292,7 +330,8 @@ class MainWindow(QMainWindow):
             self._img_path,
             src_map[self._combo_src.currentText()],
             tgt_map[self._combo_tgt.currentText()],
-            rec_score=0.5,
+            rec_score=0.3,
+            yolo_model="runs/detect/comic_2-2/weights/best.pt",
         )
         self._thread.progress.connect(self._on_progress)
         self._thread.finished.connect(self._on_finished)
