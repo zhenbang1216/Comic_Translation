@@ -18,16 +18,19 @@ class ModelManager:
         return cls._instance
 
     def get_model(
-        self, category: str, name: str, mock_path: str | None = None
+        self, category: str, name: str, mock_path: str | None = None, **kwargs
     ) -> Any:
         """获取模型实例，如未加载则先加载。"""
         key = f"{category}:{name}"
+        if kwargs:
+            serialized = ",".join(f"{k}={v}" for k, v in sorted(kwargs.items()))
+            key = f"{key}[{serialized}]"
         if key not in self._models:
-            self._models[key] = self._load_model(category, name, mock_path)
+            self._models[key] = self._load_model(category, name, mock_path, **kwargs)
         return self._models[key]
 
     def _load_model(
-        self, category: str, name: str, mock_path: str | None = None
+        self, category: str, name: str, mock_path: str | None = None, **kwargs
     ) -> Any:
         """根据类别和名称加载对应的模型。"""
         from src.utils.config import config
@@ -45,7 +48,8 @@ class ModelManager:
             return ort.InferenceSession(model_path)
         elif category == "ocr":
             from paddleocr import PaddleOCR
-            return PaddleOCR(lang="japan", use_angle_cls=True)
+            lang = kwargs.get("lang", "japan")
+            return PaddleOCR(lang=lang, use_angle_cls=True)
         elif category == "translation" and "opus" in name:
             from transformers import MarianMTModel, MarianTokenizer
             tokenizer = MarianTokenizer.from_pretrained(model_path)
@@ -62,6 +66,16 @@ class ModelManager:
             return {"model": model, "processor": processor}
         elif category == "inpainting":
             import onnxruntime as ort
+            if not model_path:
+                import os as _os
+                default_path = _os.path.join("models", "inpainting", "big-lama.onnx")
+                if _os.path.exists(default_path):
+                    model_path = default_path
+                else:
+                    raise FileNotFoundError(
+                        f"LaMa ONNX模型未找到。请运行 python scripts/download_models.py "
+                        f"或手动放置到 {default_path}"
+                    )
             return ort.InferenceSession(model_path)
         else:
             raise ValueError(f"未知的模型类别/名称: {category}/{name}")

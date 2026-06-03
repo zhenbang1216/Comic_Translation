@@ -10,6 +10,9 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+sys.path.insert(0, os.path.dirname(__file__))
+from _utils import load_translator, translate, inpaint_text, render_text
+
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".webp"}
 
 
@@ -45,20 +48,14 @@ def main():
     ocr = PaddleOCR(lang=args.lang, use_doc_orientation_classify=False,
                     use_textline_orientation=False)
 
-    from transformers import MarianMTModel, MarianTokenizer
     print("3/3 翻译模型...")
     lang_map = {"japan": "ja", "en": "en", "ch": "zh"}
     src = lang_map[args.lang]
 
-    def load_mt(pair):
-        m = MarianMTModel.from_pretrained(f"Helsinki-NLP/opus-mt-{pair}")
-        t = MarianTokenizer.from_pretrained(f"Helsinki-NLP/opus-mt-{pair}")
-        return t, m
-
     if args.target == "zh":
-        t1, m1 = load_mt("ja-en"); t2, m2 = load_mt("en-zh")
+        t1, m1 = load_translator("ja-en"); t2, m2 = load_translator("en-zh")
     else:
-        t1, m1 = load_mt(f"{src}-{args.target}"); t2 = m2 = None
+        t1, m1 = load_translator(f"{src}-{args.target}"); t2 = m2 = None
 
     # ===== 处理 =====
     out_dir = Path("output/yolo_pipeline")
@@ -107,61 +104,26 @@ def main():
         translations = []
         for t, s_ocr, bbox, conf_yolo, box_raw in texts:
             if args.target == "zh":
-                en = _translate(t, t1, m1)
-                zh = _translate(en, t2, m2)
+                en = translate(t, t1, m1)
+                zh = translate(en, t2, m2)
                 result = zh
             else:
-                result = _translate(t, t1, m1)
+                result = translate(t, t1, m1)
             translations.append((t, result, bbox, conf_yolo, s_ocr))
             print(f"    {t} → {result}")
 
         # Step 4: 渲染(可选)
         if args.render and translations:
-            cleaned = _inpaint(img, [(x,y,w,h) for _,_,(x,y,w,h),_,_ in translations])
+            cleaned = inpaint_text(img, [(x,y,w,h) for _,_,(x,y,w,h),_,_ in translations])
             rendered = cleaned.copy()
             for orig, trans, (x,y,w,h), _, _ in translations:
-                rendered = _render(rendered, trans, x, y, w, h)
+                rendered = render_text(rendered, trans, (x, y, w, h))
 
             out_path = str(out_dir / (img_path.stem + "_translated.png"))
             cv2.imwrite(out_path, rendered)
             print(f"  渲染: {out_path}")
 
     print(f"\n完成!")
-
-
-def _translate(text, tokenizer, model):
-    if not text or not text.strip():
-        return ""
-    inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
-    outputs = model.generate(**inputs, max_length=128)
-    return tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-
-def _inpaint(img, boxes, padding=4):
-    mask = np.zeros(img.shape[:2], dtype=np.uint8)
-    for x, y, w, h in boxes:
-        x1, y1 = max(0, x-padding), max(0, y-padding)
-        x2, y2 = min(img.shape[1], x+w+padding), min(img.shape[0], y+h+padding)
-        mask[y1:y2, x1:x2] = 255
-    return cv2.inpaint(img, mask, inpaintRadius=3, flags=cv2.INPAINT_TELEA)
-
-
-def _render(img, text, x, y, w, h):
-    from PIL import Image, ImageDraw, ImageFont
-    font_size = max(10, min(int(h*0.6), 28))
-    try:
-        font = ImageFont.load_default()
-    except:
-        font = ImageFont.load_default()
-
-    pil_img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-    draw = ImageDraw.Draw(pil_img)
-    tb = draw.textbbox((0,0), text, font=font)
-    tw = tb[2]-tb[0]
-    lx = x + max(0, (w-tw)//2)
-    ly = y + max(0, (h-font_size)//2)
-    draw.text((lx, ly), text, fill=(0,0,0), font=font, stroke_width=1, stroke_fill=(255,255,255))
-    return cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
 
 
 if __name__ == "__main__":

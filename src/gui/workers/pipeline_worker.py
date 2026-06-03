@@ -54,7 +54,7 @@ class PipelineWorker(QThread):
 
             self.progress.emit(30, "识别文本内容(OCR)...")
             from src.core.recognizer import Recognizer
-            recognizer = Recognizer()
+            recognizer = Recognizer(language=self._source_lang)
             for box in boxes:
                 x1 = max(0, int(box.x))
                 y1 = max(0, int(box.y))
@@ -70,11 +70,17 @@ class PipelineWorker(QThread):
                     if rec_results:
                         box.text = rec_results[0].text
 
-            self.progress.emit(50, "构建对话图...")
+            self.progress.emit(45, "分析页面布局...")
             from src.core.translator.page_analyzer import PageAnalyzer
-            from src.core.translator.dialogue_graph import DialogueGraph
             analyzer = PageAnalyzer()
             ordered = analyzer.determine_reading_order(boxes)
+            ordered = analyzer.assign_characters_by_tail(ordered)
+
+            all_texts = [b.text for b in ordered if b.text]
+            scene_type = analyzer.classify_scene(texts=all_texts)
+
+            self.progress.emit(50, "构建对话图...")
+            from src.core.translator.dialogue_graph import DialogueGraph
             graph = DialogueGraph()
             nodes, edges = graph.build(ordered)
 
@@ -97,7 +103,7 @@ class PipelineWorker(QThread):
             from src.utils.schemas import Language
             engine = TranslationEngine()
             target = Language.ZH if self._target_lang == "zh" else Language.EN
-            translations = engine.translate_all(nodes, profiles, "unknown", target)
+            translations = engine.translate_all(nodes, profiles, scene_type.value, target)
 
             self.progress.emit(80, "修复图像...")
             from src.core.inpainter import Inpainter

@@ -4,6 +4,7 @@
 """
 import os
 import sys
+from pathlib import Path
 
 
 def download_yolo():
@@ -31,6 +32,35 @@ def download_opus_mt():
     print("  OPUS-MT 模型就绪。")
 
 
+def download_lama():
+    print("[4/5] 下载 LaMa ONNX 修复模型...")
+    import urllib.request
+
+    lama_dir = Path("models/inpainting")
+    lama_dir.mkdir(parents=True, exist_ok=True)
+    output_path = lama_dir / "big-lama.onnx"
+
+    if output_path.exists():
+        print(f"  LaMa 模型已存在: {output_path}")
+        return
+
+    urls = [
+        "https://github.com/Sanster/models/releases/download/add_big_lama/big-lama.onnx",
+    ]
+
+    for url in urls:
+        try:
+            print(f"  下载 {url} ...")
+            urllib.request.urlretrieve(url, str(output_path))
+            print(f"  LaMa 模型下载完成: {output_path}")
+            return
+        except Exception as e:
+            print(f"  下载失败: {e}")
+
+    print("  [警告] LaMa 自动下载失败，请手动下载到 models/inpainting/big-lama.onnx")
+    print("  下载地址: https://github.com/advimman/lama")
+
+
 def main():
     print("=" * 50)
     print("Comic Translator — 模型下载")
@@ -38,9 +68,9 @@ def main():
     download_yolo()
     download_paddleocr()
     download_opus_mt()
-    print("\n[注意] Qwen2.5-VL-2B 和 LaMa 需要手动下载。")
+    download_lama()
+    print("\n[注意] Qwen2.5-VL-2B 需要手动下载。")
     print("  Qwen2.5-VL-2B: https://huggingface.co/Qwen/Qwen2.5-VL-2B-Instruct")
-    print("  LaMa ONNX: 从 https://github.com/advimman/lama 导出")
     print("\n全部基础模型就绪！")
     print(f"模型目录: {os.path.abspath('models')}")
 

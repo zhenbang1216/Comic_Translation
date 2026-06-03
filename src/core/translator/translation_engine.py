@@ -76,7 +76,7 @@ class TranslationEngine:
     ) -> TranslationResult:
         """使用Qwen2.5-VL-2B进行五维上下文感知翻译。"""
         context = self._build_context(box, all_boxes, profiles, scene)
-        translated = self._translate_vlm(box.text, context, target_lang.value)
+        translated = self._translate_vlm(box.text, context, box.language.value, target_lang.value)
         return TranslationResult(
             textbox_id=box.id,
             original_text=box.text,
@@ -132,8 +132,11 @@ class TranslationEngine:
         except Exception:
             return text
 
-    def _translate_vlm(self, text: str, context: dict, target_lang: str) -> str:
-        """使用Qwen2.5-VL-2B进行带完整上下文的翻译。"""
+    def _translate_vlm(self, text: str, context: dict, source_lang: str, target_lang: str) -> str:
+        """使用Qwen2.5-VL-2B进行带完整上下文的翻译。
+
+        VLM不可用时自动降级为OPUS-MT，OPUS也失败则返回原文。
+        """
         prompt = f"""{context.get('instruction', '')}
 
 场景: {context.get('scene', '未知')}
@@ -157,4 +160,7 @@ class TranslationEngine:
             )[0]
             return result.strip()
         except Exception:
-            return text
+            try:
+                return self._translate_opus(text, source_lang, target_lang)
+            except Exception:
+                return text

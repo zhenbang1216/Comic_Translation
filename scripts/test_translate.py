@@ -9,29 +9,13 @@
 """
 import sys
 import argparse
+import os
 from pathlib import Path
-import cv2
+
+sys.path.insert(0, os.path.dirname(__file__))
+from _utils import load_translator, translate
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".webp"}
-
-
-def load_translator(lang_pair):
-    """加载OPUS-MT翻译模型。"""
-    from transformers import MarianMTModel, MarianTokenizer
-    model_name = f"Helsinki-NLP/opus-mt-{lang_pair}"
-    print(f"  加载 {model_name}...")
-    tokenizer = MarianTokenizer.from_pretrained(model_name)
-    model = MarianMTModel.from_pretrained(model_name)
-    return tokenizer, model
-
-
-def translate(text, tokenizer, model):
-    """翻译单条文本。"""
-    if not text or not text.strip():
-        return ""
-    inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
-    outputs = model.generate(**inputs, max_length=128)
-    return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 
 def main():

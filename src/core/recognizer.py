@@ -18,19 +18,22 @@ class Recognizer:
     当置信度低于阈值时触发TACE三级增强并重试。
     """
 
-    def __init__(self) -> None:
+    ISO_TO_PADDLE_LANG = {"ja": "japan", "zh": "ch", "en": "en"}
+
+    def __init__(self, language: str = "japan") -> None:
         from src.core.model_manager import ModelManager
         from src.utils.config import config
 
         self._mgr = ModelManager()
         self._ocr = None
+        self._language = self.ISO_TO_PADDLE_LANG.get(language, language)
         self._conf_threshold = config.get("pipeline.ocr.confidence_threshold", 0.7)
         self._fallback_enabled = config.get("pipeline.ocr.fallback_on_low_conf", True)
 
     @property
     def ocr(self):
         if self._ocr is None:
-            self._ocr = self._mgr.get_model("ocr", "recognition")
+            self._ocr = self._mgr.get_model("ocr", "recognition", lang=self._language)
         return self._ocr
 
     def recognize(self, image_path: str) -> list[RecognitionResult]:
