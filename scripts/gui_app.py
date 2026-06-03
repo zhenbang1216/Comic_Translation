@@ -142,6 +142,15 @@ class PipelineThread(QThread):
 
             out_dir = Path("output/gui")
             out_dir.mkdir(parents=True, exist_ok=True)
+
+            # 保存YOLO检测可视化
+            det_img = img.copy()
+            for i, box in enumerate(results[0].boxes.xyxy):
+                x1, y1, x2, y2 = map(int, box[:4])
+                cv2.rectangle(det_img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            det_path = str(out_dir / (Path(self.img_path).stem + "_yolo_detect.png"))
+            cv2.imwrite(det_path, det_img)
+
             out_path = str(out_dir / (Path(self.img_path).stem + "_translated.png"))
             cv2.imwrite(out_path, rendered)
 
@@ -152,7 +161,7 @@ class PipelineThread(QThread):
                     f.write(f"{orig} → {trans}\n")
 
             self.progress.emit(100, "完成!")
-            self.finished.emit(out_path, log_path)
+            self.finished.emit(out_path, det_path)
 
         except Exception as e:
             self.error.emit(str(e))
@@ -342,9 +351,9 @@ class MainWindow(QMainWindow):
         self._progress.setValue(value)
         self._status.setText(msg)
 
-    def _on_finished(self, img_path, log_path):
+    def _on_finished(self, img_path, det_path):
         self._progress.setValue(100)
-        self._status.setText(f"完成! {img_path}")
+        self._status.setText(f"完成! 翻译图: {img_path}")
 
         pixmap = QPixmap(img_path)
         scaled = pixmap.scaled(self._img_label.size(),
@@ -354,11 +363,8 @@ class MainWindow(QMainWindow):
         self._btn_run.setEnabled(True)
         self._btn_open.setEnabled(True)
 
-        msg = f"翻译完成!\n\n图片: {img_path}"
-        if self._check_save.isChecked():
-            msg += f"\n对照文本: {log_path}"
-
-        QMessageBox.information(self, "完成", msg)
+        QMessageBox.information(self, "完成",
+            f"YOLO检测图: {det_path}\n翻译结果: {img_path}")
 
     def _on_error(self, msg):
         self._progress.setVisible(False)
