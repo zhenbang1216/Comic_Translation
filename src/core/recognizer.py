@@ -45,15 +45,34 @@ class Recognizer:
 
     def _run_ocr(self, image_path: str) -> list[RecognitionResult]:
         """执行PP-OCRv5 + SVTR识别。"""
-        ocr_results = self.ocr.ocr(image_path, cls=True)
+        try:
+            ocr_results = self.ocr.ocr(image_path)
+        except Exception:
+            return []
 
         results = []
-        if ocr_results is None or ocr_results[0] is None:
+        if not ocr_results:
             return results
 
-        for line in ocr_results[0]:
-            text = line[1][0]
-            conf = line[1][1]
+        first = ocr_results[0]
+        if not first or isinstance(first, str):
+            return results
+
+        for line in first:
+            try:
+                if isinstance(line, list) and len(line) >= 2:
+                    text = str(line[1][0]) if line[1] else ""
+                    conf = float(line[1][1]) if len(line[1]) >= 2 else 0.0
+                elif isinstance(line, tuple) and len(line) == 2:
+                    text = str(line[0])
+                    conf = float(line[1])
+                else:
+                    continue
+            except (IndexError, TypeError, ValueError):
+                continue
+
+            if not text:
+                continue
             lang = self._detect_language(text)
             results.append(RecognitionResult(
                 text=text,

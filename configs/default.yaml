@@ -42,4 +42,4 @@ gui:
 
 paths:
   character_profiles_dir: "data/profiles"
-  output_dir: "output"
+  output_dir: "output/gui"

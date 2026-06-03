@@ -63,10 +63,12 @@ class PipelineWorker(QThread):
                 if x2 > x1 and y2 > y1:
                     region = img[y1:y2, x1:x2]
                     import tempfile
-                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-                        cv2.imwrite(f.name, region)
-                        rec_results = recognizer.recognize(f.name)
-                        os.unlink(f.name)
+                    tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                    tmp_path = tmp.name
+                    tmp.close()
+                    cv2.imwrite(tmp_path, region)
+                    rec_results = recognizer.recognize(tmp_path)
+                    os.unlink(tmp_path)
                     if rec_results:
                         box.text = rec_results[0].text
 
