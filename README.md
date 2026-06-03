@@ -88,7 +88,7 @@ yolo detect train data="数据集/data.yaml" model=yolov8n.pt epochs=50 name=my_
 
 ## 团队
 
-大学生项目，5人组。分工与时间规划详见 `plan.md`。
+5人组。分工与时间规划详见 `plan.md`。
 
 ## License
 
