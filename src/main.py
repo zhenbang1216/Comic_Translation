@@ -39,8 +39,9 @@ def run_cli(image_path: str, source: str, target: str, output: str):
     def on_progress(value, msg):
         print(f"  [{value}%] {msg}")
 
-    def on_finished(path):
-        print(f"  完成！输出: {path}")
+    def on_finished(translated_path, yolo_det_path):
+        print(f"  YOLO检测图: {yolo_det_path}")
+        print(f"  翻译结果: {translated_path}")
         app.quit()
 
     def on_error(err):

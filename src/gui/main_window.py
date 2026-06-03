@@ -1,7 +1,9 @@
 """M8：主窗口 — 漫画翻译系统的PySide6图形界面。"""
+from pathlib import Path
+
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QComboBox, QProgressBar,
+    QPushButton, QLabel, QComboBox, QProgressBar, QCheckBox,
     QFileDialog, QMessageBox, QScrollArea, QSplitter,
 )
 from PySide6.QtCore import Qt
@@ -20,59 +22,53 @@ class MainWindow(QMainWindow):
     def _setup_ui(self) -> None:
         """构建主窗口布局。"""
         self.setWindowTitle("Comic Translator - 漫画翻译")
-        self.resize(1400, 900)
+        self.resize(1400, 850)
 
         central = QWidget()
         self.setCentralWidget(central)
         main_layout = QHBoxLayout(central)
 
         splitter = QSplitter(Qt.Horizontal)
-        left_panel = self._build_image_panel()
-        splitter.addWidget(left_panel)
-        right_panel = self._build_control_panel()
-        splitter.addWidget(right_panel)
-        splitter.setSizes([900, 500])
-        main_layout.addWidget(splitter)
 
-    def _build_image_panel(self) -> QWidget:
-        """构建左侧图像预览面板。"""
-        panel = QWidget()
-        layout = QVBoxLayout(panel)
-
-        self._image_label = QLabel("请打开一张漫画图片")
+        # === 左侧：图片预览 ===
+        left = QWidget()
+        ll = QVBoxLayout(left)
+        self._image_label = QLabel("请打开一张漫画图片\n\n支持 jpg/png/bmp/webp")
         self._image_label.setAlignment(Qt.AlignCenter)
         self._image_label.setStyleSheet(
-            "QLabel { background-color: #f0f0f0; border: 1px solid #ccc; }"
+            "QLabel { background: #f5f5f5; border: 1px dashed #ccc; }"
         )
-        self._image_label.setMinimumSize(600, 600)
-
+        self._image_label.setMinimumSize(700, 600)
         scroll = QScrollArea()
         scroll.setWidget(self._image_label)
         scroll.setWidgetResizable(True)
-        layout.addWidget(scroll)
-        return panel
+        ll.addWidget(scroll)
+        splitter.addWidget(left)
 
-    def _build_control_panel(self) -> QWidget:
-        """构建右侧控制面板。"""
-        panel = QWidget()
-        layout = QVBoxLayout(panel)
-        layout.setSpacing(10)
+        # === 右侧：控制面板 ===
+        right = QWidget()
+        rl = QVBoxLayout(right)
+        rl.setSpacing(8)
 
-        layout.addWidget(QLabel("控制面板"))
+        rl.addWidget(QLabel("<b>漫画翻译</b>"))
 
         self._btn_open = QPushButton("打开漫画图片")
         self._btn_open.clicked.connect(self._on_open_image)
-        layout.addWidget(self._btn_open)
+        rl.addWidget(self._btn_open)
 
-        layout.addWidget(QLabel("源语言:"))
+        rl.addWidget(QLabel("源语言:"))
         self._combo_src = QComboBox()
         self._combo_src.addItems(["日语", "英语", "中文"])
-        layout.addWidget(self._combo_src)
+        rl.addWidget(self._combo_src)
 
-        layout.addWidget(QLabel("目标语言:"))
+        rl.addWidget(QLabel("目标语言:"))
         self._combo_tgt = QComboBox()
         self._combo_tgt.addItems(["中文", "英语"])
-        layout.addWidget(self._combo_tgt)
+        rl.addWidget(self._combo_tgt)
+
+        self._check_save = QCheckBox("保留原图对照(PNG+文本)")
+        self._check_save.setChecked(True)
+        rl.addWidget(self._check_save)
 
         self._btn_translate = QPushButton("一键翻译")
         self._btn_translate.clicked.connect(self._on_translate)
@@ -80,21 +76,22 @@ class MainWindow(QMainWindow):
         self._btn_translate.setStyleSheet(
             "QPushButton { background-color: #4CAF50; color: white; padding: 10px; "
             "font-size: 14px; border-radius: 5px; }"
+            "QPushButton:hover { background-color: #45a049; }"
+            "QPushButton:disabled { background-color: #ccc; }"
         )
-        layout.addWidget(self._btn_translate)
+        rl.addWidget(self._btn_translate)
 
         self._progress_bar = QProgressBar()
         self._progress_bar.setVisible(False)
-        layout.addWidget(self._progress_bar)
-        self._status_label = QLabel("就绪")
-        layout.addWidget(self._status_label)
-        layout.addStretch()
+        rl.addWidget(self._progress_bar)
 
-        layout.addWidget(QLabel("排版模式"))
-        self._combo_layout = QComboBox()
-        self._combo_layout.addItems(["自动", "手动"])
-        layout.addWidget(self._combo_layout)
-        return panel
+        self._status_label = QLabel("就绪")
+        rl.addWidget(self._status_label)
+
+        rl.addStretch()
+        splitter.addWidget(right)
+        splitter.setSizes([950, 450])
+        main_layout.addWidget(splitter)
 
     def _on_open_image(self) -> None:
         """处理打开图片按钮点击。"""
@@ -110,7 +107,7 @@ class MainWindow(QMainWindow):
             )
             self._image_label.setPixmap(scaled)
             self._btn_translate.setEnabled(True)
-            self._status_label.setText(f"已加载: {file_path.split('/')[-1]}")
+            self._status_label.setText(f"已加载: {Path(file_path).name}")
 
     def _on_translate(self) -> None:
         """启动翻译管线。"""
@@ -137,17 +134,21 @@ class MainWindow(QMainWindow):
         self._progress_bar.setValue(value)
         self._status_label.setText(message)
 
-    def _on_finished(self, output_path: str) -> None:
+    def _on_finished(self, translated_path: str, yolo_det_path: str) -> None:
         self._progress_bar.setValue(100)
-        self._status_label.setText(f"完成！保存至: {output_path}")
-        self._btn_translate.setEnabled(True)
-        self._btn_open.setEnabled(True)
-        pixmap = QPixmap(output_path)
+        self._status_label.setText(f"完成! 翻译图: {translated_path}")
+
+        pixmap = QPixmap(translated_path)
         scaled = pixmap.scaled(
             self._image_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
         )
         self._image_label.setPixmap(scaled)
-        QMessageBox.information(self, "翻译完成", f"翻译结果已保存至:\n{output_path}")
+
+        self._btn_translate.setEnabled(True)
+        self._btn_open.setEnabled(True)
+
+        QMessageBox.information(self, "完成",
+            f"YOLO检测图: {yolo_det_path}\n翻译结果: {translated_path}")
 
     def _on_error(self, error_msg: str) -> None:
         self._progress_bar.setVisible(False)
