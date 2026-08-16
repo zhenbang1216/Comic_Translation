@@ -16,5 +16,5 @@ dist/
 models/
 cache/
 outputs/
-datasets/
+/datasets/
 

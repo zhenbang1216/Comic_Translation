@@ -14,3 +14,23 @@ COMIC_CODEX 是面向 Windows 笔记本的漫画智能翻译与自动嵌字桌�
 项目总体方案位于：
 `E:\Create\Data\COMIC\COMIC_CODEX\COMIC_CODEX_项目总体方案.md`。
 
+## 开发环境
+
+```powershell
+& 'E:\huangjingwei\SOFT\VisionTrainPlus_Envs\Miniconda3\envs\morning_agent\python.exe' -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e '.[dev]'
+$env:COMIC_CODEX_DATA_ROOT = 'E:\Create\Data\COMIC\COMIC_CODEX'
+```
+
+## 基础阶段验证
+
+```powershell
+.\.venv\Scripts\python.exe scripts\verify_environment.py
+.\.venv\Scripts\python.exe -m pytest -q --cov=src/comic_codex --cov-report=term-missing
+.\.venv\Scripts\ruff.exe check .
+.\.venv\Scripts\mypy.exe src
+```
+
+详细实施计划位于：
+`E:\Create\Data\COMIC\COMIC_CODEX\2026-08-16-01-foundation-implementation-plan.md`。
+
