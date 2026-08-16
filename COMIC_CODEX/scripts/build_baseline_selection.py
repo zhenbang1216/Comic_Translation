@@ -54,7 +54,12 @@ def build_specs() -> list[BaselineSpec]:
             annotation_relative_path=_data2_annotation(path),
             language="id",
             license_status="unknown",
-            notes=f"512x512 low-sharpness candidate; Laplacian variance={score:.2f}",
+            review_status="confirmed",
+            review_evidence=(
+                "2026-08-16 contact-sheet review: 512x512 source with visible "
+                "compression, small text, or reduced line clarity"
+            ),
+            notes=f"Low-sharpness baseline; Laplacian variance={score:.2f}",
         )
         for path, score in LOW_SHARPNESS
     ]
@@ -65,7 +70,12 @@ def build_specs() -> list[BaselineSpec]:
             annotation_relative_path=_data2_annotation(path),
             language="id",
             license_status="unknown",
-            notes=f"512x512 high-sharpness horizontal candidate; Laplacian variance={score:.2f}",
+            review_status="confirmed",
+            review_evidence=(
+                "2026-08-16 contact-sheet review: dominant translated dialogue "
+                "is horizontal within approximately +/-15 degrees"
+            ),
+            notes=f"High-sharpness horizontal baseline; Laplacian variance={score:.2f}",
         )
         for path, score in HIGH_SHARPNESS
     )
@@ -76,10 +86,12 @@ def build_specs() -> list[BaselineSpec]:
             annotation_relative_path=f"{MANGA_ROOT}/annotations/ARMS.xml",
             language="ja",
             license_status="research_only",
-            notes=(
-                "Manga109 high-resolution Japanese vertical-text candidate; "
-                "visual review required"
+            review_status="confirmed",
+            review_evidence=(
+                "2026-08-16 contact-sheet review: more than half of dialogue "
+                "regions use vertical Japanese layout"
             ),
+            notes="Manga109 high-resolution Japanese vertical-text baseline",
         )
         for page in range(3, 15)
     )
@@ -90,7 +102,12 @@ def build_specs() -> list[BaselineSpec]:
             annotation_relative_path=f"{MANGA_ROOT}/annotations/ARMS.xml",
             language="ja",
             license_status="research_only",
-            notes="Manga109 high-detail background candidate; visual review required",
+            review_status="confirmed",
+            review_evidence=(
+                "2026-08-16 contact-sheet review: dialogue or sound text overlaps "
+                "line art, screentone, effects, or other non-uniform texture"
+            ),
+            notes="Manga109 high-detail complex-background baseline",
         )
         for page in range(15, 27)
     )

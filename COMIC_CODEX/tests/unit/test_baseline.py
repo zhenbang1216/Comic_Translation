@@ -31,6 +31,8 @@ def test_build_selection_resolves_hash_and_stable_id() -> None:
                 annotation_relative_path="annotations.json",
                 language="id",
                 license_status="unknown",
+                review_status="confirmed",
+                review_evidence="reviewed",
                 notes="high sharpness candidate",
             )
         ],
@@ -51,6 +53,8 @@ def test_build_selection_rejects_missing_asset() -> None:
                     annotation_relative_path="annotations.json",
                     language="id",
                     license_status="unknown",
+                    review_status="confirmed",
+                    review_evidence="reviewed",
                     notes="missing",
                 )
             ],
@@ -64,6 +68,8 @@ def test_build_selection_rejects_duplicate_asset() -> None:
         annotation_relative_path="annotations.json",
         language="id",
         license_status="unknown",
+        review_status="confirmed",
+        review_evidence="reviewed",
         notes="duplicate",
     )
 

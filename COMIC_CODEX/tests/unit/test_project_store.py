@@ -1,4 +1,5 @@
 import json
+import threading
 from pathlib import Path
 
 import pytest
@@ -47,4 +48,39 @@ def test_load_rejects_unknown_schema_before_model_validation(tmp_path: Path) -> 
 
     with pytest.raises(UnsupportedSchemaVersionError, match="2"):
         JsonProjectStore().load(path)
+
+
+def test_concurrent_atomic_writes_use_distinct_temporary_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from comic_codex.project_store.atomic_json import write_text_atomically
+
+    path = tmp_path / "shared.json"
+    temporary_paths: list[Path] = []
+    real_replace = __import__("os").replace
+
+    def synchronized_replace(source: Path, target: Path) -> None:
+        temporary_paths.append(source)
+        real_replace(source, target)
+
+    monkeypatch.setattr(
+        "comic_codex.project_store.atomic_json.os.replace", synchronized_replace
+    )
+    errors: list[BaseException] = []
+
+    def write(content: str) -> None:
+        try:
+            write_text_atomically(path, content)
+        except BaseException as error:
+            errors.append(error)
+
+    threads = [threading.Thread(target=write, args=(value,)) for value in ("one", "two")]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=3)
+
+    assert errors == []
+    assert len(set(temporary_paths)) == 2
+    assert path.read_text(encoding="utf-8") in {"one", "two"}
 

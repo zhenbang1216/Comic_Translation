@@ -21,7 +21,7 @@ def capture_runtime_snapshot() -> RuntimeSnapshot:
         memory = psutil.virtual_memory()
         system_total_mb = float(memory.total) / (1024 * 1024)
         system_available_mb = float(memory.available) / (1024 * 1024)
-    except (ImportError, AttributeError):
+    except (ImportError, AttributeError, RuntimeError, OSError):
         pass
 
     try:
@@ -29,7 +29,7 @@ def capture_runtime_snapshot() -> RuntimeSnapshot:
         if bool(torch.cuda.is_available()):
             cuda_allocated_mb = float(torch.cuda.memory_allocated()) / (1024 * 1024)
             cuda_reserved_mb = float(torch.cuda.memory_reserved()) / (1024 * 1024)
-    except (ImportError, AttributeError):
+    except (ImportError, AttributeError, RuntimeError, OSError):
         pass
 
     return RuntimeSnapshot(

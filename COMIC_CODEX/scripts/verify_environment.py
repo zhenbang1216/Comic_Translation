@@ -38,14 +38,20 @@ def _verify_baseline(path: Path) -> dict[str, object]:
     hashes = [record.sha256 for record in selection.records]
     if len(hashes) != len(set(hashes)):
         raise ValueError("baseline contains duplicate asset hashes")
-    root = Path(selection.source_manifest_root)
+    root = Path(selection.source_manifest_root).resolve()
     for record in selection.records:
-        source = root / Path(record.source_relative_path)
+        if record.review_status != "confirmed":
+            raise ValueError(f"baseline record is not confirmed: {record.id}")
+        source = (root / Path(record.source_relative_path)).resolve()
+        if root not in source.parents:
+            raise ValueError(f"baseline source escapes manifest root: {record.id}")
         if not source.is_file():
             raise FileNotFoundError(source)
         if _sha256(source) != record.sha256:
             raise ValueError(f"baseline hash mismatch: {record.id}")
-        annotation = root / Path(record.annotation_relative_path)
+        annotation = (root / Path(record.annotation_relative_path)).resolve()
+        if root not in annotation.parents:
+            raise ValueError(f"baseline annotation escapes manifest root: {record.id}")
         if not annotation.is_file():
             raise FileNotFoundError(annotation)
     return {"status": "pass", "records": len(selection.records)}
@@ -131,6 +137,7 @@ def main() -> int:
 
     if args.skip_baseline:
         report["baseline"] = {"status": "skipped"}
+        failures.append("baseline")
     else:
         try:
             baseline_path = args.baseline or (

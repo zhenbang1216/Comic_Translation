@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from comic_codex.datasets.manifest import DatasetManifest
 from comic_codex.project_store.atomic_json import write_text_atomically
@@ -22,12 +22,29 @@ class BaselineSpec(BaseModel):
     annotation_relative_path: str
     language: str
     license_status: LicenseStatus
+    review_status: Literal["confirmed"]
+    review_evidence: str
     notes: str
+
+    @field_validator("source_relative_path", "annotation_relative_path")
+    @classmethod
+    def validate_relative_path(cls, value: str) -> str:
+        path = Path(value)
+        if path.is_absolute() or ".." in path.parts:
+            raise ValueError("baseline paths must be normalized relative paths")
+        return value
 
 
 class BaselineRecord(BaselineSpec):
     id: str
     sha256: str
+
+    @field_validator("sha256")
+    @classmethod
+    def validate_sha256(cls, value: str) -> str:
+        if len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
+            raise ValueError("sha256 must be 64 lowercase hexadecimal characters")
+        return value
 
 
 class BaselineSelection(BaseModel):
