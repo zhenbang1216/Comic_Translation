@@ -1,0 +1,8 @@
+schema_version: 1
+pipeline:
+  detection_confidence: 0.5
+  ocr_confidence: 0.7
+resources:
+  max_resident_heavy_models: 1
+online_translation:
+  enabled: false
